@@ -506,7 +506,7 @@
       const area = document.getElementById('statusArea');
       const div = document.createElement('div');
       div.className = 'status-msg';
-      div.innerHTML = `<span class="spinner"></span>${escapeHTML(msg)}`;
+      div.innerHTML = escapeHTML(msg);
       area.appendChild(div);
       area.scrollTop = area.scrollHeight;
     }
