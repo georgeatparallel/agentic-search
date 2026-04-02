@@ -90,11 +90,11 @@ def test_merge_prefers_higher_confidence():
             },
         },
         {
-            "name": "Acme Corp",
+            "name": "Acme",
             "ceo": "Bob",
             "_source_url": "https://b.com",
             "_attributes": {
-                "name": {"value": "Acme Corp", "confidence": 0.9, "source_quote": None, "source_url": ""},
+                "name": {"value": "Acme", "confidence": 0.9, "source_quote": None, "source_url": ""},
                 "ceo": {"value": "Bob", "confidence": 0.95, "source_quote": "CEO Bob Smith", "source_url": ""},
             },
         },
