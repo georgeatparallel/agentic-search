@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-2: #1a1a26;
+      --border: #2a2a3a;
+      --border-hover: #3a3a5a;
+      --text: #e4e4ed;
+      --text-muted: #8888a0;
+      --accent: #6c5ce7;
+      --accent-glow: rgba(108, 92, 231, 0.25);
+      --green: #00b894;
+      --orange: #fdcb6e;
+      --red: #e17055;
+      --radius: 10px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 3rem 0 2rem;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.4rem;
+      background: linear-gradient(135deg, var(--accent), #a29bfe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    /* Search bar */
+    .search-area {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 700px;
+      margin: 2rem auto;
+      align-items: stretch;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 0.85rem 1.2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .search-input::placeholder { color: var(--text-muted); }
+
+    .search-btn {
+      padding: 0.85rem 1.8rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .search-btn:hover:not(:disabled) {
+      background: #7c6ef0;
+      transform: translateY(-1px);
+    }
+
+    .search-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Options row */
+    .options-row {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .option-label input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+
+    /* Status */
+    .status-area {
+      max-width: 700px;
+      margin: 0 auto 2rem;
+      display: none;
+    }
+
+    .status-area.visible { display: block; }
+
+    .status-msg {
+      padding: 0.6rem 1rem;
+      background: var(--surface);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Meta info */
+    .meta-bar {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding: 1rem 1.2rem;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .meta-item {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .meta-item strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Results table */
+    .results-section { display: none; }
+    .results-section.visible { display: block; }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface-2);
+      padding: 0.8rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      max-width: 300px;
+      vertical-align: top;
+    }
+
+    tbody tr:hover { background: var(--surface-2); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* Cell value with provenance */
+    .cell-value {
+      cursor: default;
+      position: relative;
+    }
+
+    .cell-value.has-source {
+      cursor: pointer;
+      border-bottom: 1px dotted var(--text-muted);
+    }
+
+    .cell-value.has-source:hover {
+      color: var(--accent);
+    }
+
+    .cell-null {
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 0.8rem;
+    }
+
+    .confidence-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .conf-high   { background: var(--green); }
+    .conf-medium { background: var(--orange); }
+    .conf-low    { background: var(--red); }
+
+    /* Source tooltip */
+    .tooltip {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.8rem 1rem;
+      max-width: 400px;
+      font-size: 0.82rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .tooltip.visible { display: block; }
+
+    .tooltip-quote {
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 0.4rem;
+      line-height: 1.4;
+    }
+
+    .tooltip-url {
+      color: var(--accent);
+      word-break: break-all;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    .tooltip-url a { color: inherit; text-decoration: none; }
+    .tooltip-url a:hover { text-decoration: underline; }
+
+    /* Source links column */
+    .source-links a {
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      text-decoration: none;
+      display: inline-block;
+      margin-right: 0.4rem;
+    }
+
+    .source-links a:hover { text-decoration: underline; }
+
+    /* Error */
+    .error-msg {
+      max-width: 700px;
+      margin: 1rem auto;
+      padding: 1rem;
+      background: rgba(225, 112, 85, 0.1);
+      border: 1px solid var(--red);
+      border-radius: var(--radius);
+      color: var(--red);
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    /* Examples */
+    .examples {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .examples span {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .example-chip {
+      display: inline-block;
+      padding: 0.35rem 0.8rem;
+      margin: 0.3rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .example-chip:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* Export button */
+    .export-btn {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .export-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .results-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Agentic Search</h1>
+      <p>Discover structured data from the web using AI</p>
+    </header>
+
+    <div class="search-area">
+      <input
+        type="text"
+        class="search-input"
+        id="queryInput"
+        placeholder='Try "AI startups in healthcare" or "best databases for analytics"'
+        autocomplete="off"
+      >
+      <button class="search-btn" id="searchBtn" onclick="runSearch()">Search</button>
+    </div>
+
+    <div class="options-row">
+      <label class="option-label">
+        <input type="checkbox" id="agentToggle" checked>
+        Enable agentic gap-filling
+      </label>
+    </div>
+
+    <div class="examples">
+      <span>Try: </span>
+      <span class="example-chip" onclick="setQuery(this)">AI startups in healthcare</span>
+      <span class="example-chip" onclick="setQuery(this)">top pizza places in Brooklyn</span>
+      <span class="example-chip" onclick="setQuery(this)">open source database tools</span>
+      <span class="example-chip" onclick="setQuery(this)">electric vehicle companies</span>
+    </div>
+
+    <div class="status-area" id="statusArea"></div>
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="results-section" id="resultsSection">
+      <div class="meta-bar" id="metaBar"></div>
+      <div class="results-header">
+        <h2 id="resultsTitle">Results</h2>
+        <button class="export-btn" onclick="exportJSON()">Export JSON</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip for source provenance -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    let lastResult = null;
+
+    function setQuery(el) {
+      document.getElementById('queryInput').value = el.textContent.trim();
+    }
+
+    // Enter key triggers search
+    document.getElementById('queryInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runSearch();
+    });
+
+    async function runSearch() {
+      const query = document.getElementById('queryInput').value.trim();
+      if (!query) return;
+
+      const btn = document.getElementById('searchBtn');
+      const statusArea = document.getElementById('statusArea');
+      const errorMsg = document.getElementById('errorMsg');
+      const resultsSection = document.getElementById('resultsSection');
+
+      // Reset
+      btn.disabled = true;
+      btn.textContent = 'Searching...';
+      statusArea.innerHTML = '';
+      statusArea.classList.add('visible');
+      errorMsg.classList.remove('visible');
+      resultsSection.classList.remove('visible');
+
+      addStatus('Starting search pipeline...');
+
+      try {
+        const enableAgent = document.getElementById('agentToggle').checked;
+        const resp = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, enable_agent: enableAgent }),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        lastResult = data;
+        addStatus(`Complete! Found ${data.entity_count} entities in ${data.timing.total}s`);
+        renderResults(data);
+
+      } catch (e) {
+        errorMsg.textContent = `Error: ${e.message}`;
+        errorMsg.classList.add('visible');
+        addStatus(`Failed: ${e.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Search';
+      }
+    }
+
+    function addStatus(msg) {
+      const area = document.getElementById('statusArea');
+      const div = document.createElement('div');
+      div.className = 'status-msg';
+      div.innerHTML = `<span class="spinner"></span>${escapeHTML(msg)}`;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function renderResults(data) {
+      if (!data.entities || data.entities.length === 0) {
+        document.getElementById('errorMsg').textContent = 'No entities found. Try a different query.';
+        document.getElementById('errorMsg').classList.add('visible');
+        return;
+      }
+
+      const columns = data.columns || [];
+      const entities = data.entities || [];
+
+      // Meta bar
+      const metaBar = document.getElementById('metaBar');
+      metaBar.innerHTML = `
+        <div class="meta-item"><strong>${data.entity_count}</strong> entities found</div>
+        <div class="meta-item">Entity type: <strong>${data.schema?.entity_type || 'unknown'}</strong></div>
+        <div class="meta-item">Gap ratio: <strong>${(data.gap_ratio * 100).toFixed(0)}%</strong></div>
+        <div class="meta-item">Total time: <strong>${data.timing?.total || '?'}s</strong></div>
+        <div class="meta-item">Sources: <strong>${data.sources_used?.length || 0}</strong></div>
+      `;
+
+      document.getElementById('resultsTitle').textContent =
+        `${data.schema?.entity_type_plural || 'Results'} — "${data.query}"`;
+
+      // Table header
+      const thead = document.getElementById('tableHead');
+      let headerHTML = '<tr>';
+      for (const col of columns) {
+        headerHTML += `<th>${escapeHTML(col.display_name)}</th>`;
+      }
+      headerHTML += '<th>Sources</th></tr>';
+      thead.innerHTML = headerHTML;
+
+      // Table body
+      const tbody = document.getElementById('tableBody');
+      let bodyHTML = '';
+      for (const entity of entities) {
+        bodyHTML += '<tr>';
+        for (const col of columns) {
+          const val = entity[col.name];
+          const source = entity._sources?.[col.name];
+          const conf = source?.confidence;
+
+          if (val === null || val === undefined || val === '' || val === 'null') {
+            bodyHTML += `<td><span class="cell-null">—</span></td>`;
+          } else {
+            const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
+            const hasSource = source?.source_quote;
+            const confClass = conf >= 0.8 ? 'conf-high' : conf >= 0.5 ? 'conf-medium' : 'conf-low';
+            const confDot = conf != null ? `<span class="confidence-dot ${confClass}" title="Confidence: ${(conf*100).toFixed(0)}%"></span>` : '';
+
+            const sourceData = hasSource ? `data-quote="${escapeAttr(source.source_quote)}" data-url="${escapeAttr(source.source_url || '')}"` : '';
+            const cellClass = hasSource ? 'cell-value has-source' : 'cell-value';
+
+            bodyHTML += `<td><span class="${cellClass}" ${sourceData} onmouseenter="showTooltip(event, this)" onmouseleave="hideTooltip()">${escapeHTML(truncate(displayVal, 120))}${confDot}</span></td>`;
+          }
+        }
+
+        // Source links
+        const sourceUrls = entity._source_urls || [];
+        bodyHTML += '<td class="source-links">';
+        sourceUrls.forEach((url, i) => {
+          try {
+            const hostname = new URL(url).hostname.replace('www.', '');
+            bodyHTML += `<a href="${escapeAttr(url)}" target="_blank" title="${escapeAttr(url)}">[${hostname}]</a> `;
+          } catch {
+            bodyHTML += `<a href="${escapeAttr(url)}" target="_blank">[${i+1}]</a> `;
+          }
+        });
+        bodyHTML += '</td></tr>';
+      }
+      tbody.innerHTML = bodyHTML;
+
+      document.getElementById('resultsSection').classList.add('visible');
+    }
+
+    function showTooltip(event, el) {
+      const quote = el.getAttribute('data-quote');
+      const url = el.getAttribute('data-url');
+      if (!quote) return;
+
+      const tooltip = document.getElementById('tooltip');
+      tooltip.innerHTML = `
+        <div class="tooltip-quote">"${escapeHTML(quote)}"</div>
+        ${url ? `<div class="tooltip-url"><a href="${escapeAttr(url)}" target="_blank">${escapeHTML(url)}</a></div>` : ''}
+      `;
+
+      const rect = el.getBoundingClientRect();
+      tooltip.style.left = Math.min(rect.left, window.innerWidth - 420) + 'px';
+      tooltip.style.top = (rect.bottom + 8) + 'px';
+      tooltip.classList.add('visible');
+    }
+
+    function hideTooltip() {
+      document.getElementById('tooltip').classList.remove('visible');
+    }
+
+    function exportJSON() {
+      if (!lastResult) return;
+      const blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `agentic-search-${lastResult.query.replace(/\s+/g, '-')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function escapeAttr(str) {
+      return escapeHTML(str).replace(/'/g, '&#39;');
+    }
+
+    function truncate(str, len) {
+      if (!str) return '';
+      return str.length > len ? str.substring(0, len) + '…' : str;
+    }
+  </script>
+</body>
+</html>
