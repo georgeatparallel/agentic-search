@@ -30,7 +30,7 @@ Respond with ONLY a JSON object in this exact format:
 }}
 
 Guidelines:
-- Include 5-8 attributes that would be most useful and commonly available
+- Include 4-5 attributes that would be most useful and commonly available
 - Always include a "name" attribute as the first attribute
 - Include attributes that differentiate entities (not ones that would be the same for all)
 - Prefer concrete, factual attributes over subjective ones

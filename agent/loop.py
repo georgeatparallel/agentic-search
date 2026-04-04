@@ -6,6 +6,7 @@ This is what makes the system "agentic" — it reasons about its own output
 quality and takes corrective action.
 """
 
+import asyncio
 import logging
 
 import config
@@ -75,11 +76,10 @@ async def run_agentic_loop(
             logger.info("No follow-up queries generated. Stopping.")
             break
 
-        # Search for each follow-up query
-        new_search_results = []
-        for fq in follow_up_queries:
-            results = await brave_search(fq, num_results=5)
-            new_search_results.extend(results)
+        # Search for all follow-up queries in parallel
+        search_tasks = [brave_search(fq, num_results=5) for fq in follow_up_queries]
+        search_results_list = await asyncio.gather(*search_tasks)
+        new_search_results = [r for results in search_results_list for r in results]
 
         # Filter out already-visited URLs
         new_urls = []

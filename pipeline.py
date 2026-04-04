@@ -40,9 +40,23 @@ class PipelineResult:
         for entity in self.entities:
             row = {}
             sources = {}
+            entity_attrs = entity.get("_attributes", {})
             for attr_name in attr_names:
-                row[attr_name] = entity.get(attr_name)
-                attr_meta = entity.get("_attributes", {}).get(attr_name, {})
+                val = entity.get(attr_name)
+                # Flatten plain dicts to a comma-separated string so the frontend never sees [object Object]
+                if isinstance(val, dict):
+                    val = ", ".join(str(v) for v in val.values() if v is not None) or None
+                row[attr_name] = val
+                # Exact key match first, then fall back to any _attributes key
+                # that is a substring of or contains the schema attribute name.
+                # This handles LLM aliases like company_name→name, found_date→founded_year.
+                attr_meta = entity_attrs.get(attr_name)
+                if attr_meta is None:
+                    for key, meta in entity_attrs.items():
+                        if attr_name in key or key in attr_name:
+                            attr_meta = meta
+                            break
+                attr_meta = attr_meta or {}
                 sources[attr_name] = {
                     "source_quote": attr_meta.get("source_quote"),
                     "source_url": attr_meta.get("source_url"),

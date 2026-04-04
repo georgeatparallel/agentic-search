@@ -10,27 +10,39 @@ from llm.client import get_client
 
 logger = logging.getLogger(__name__)
 
-EXTRACTION_PROMPT = """You are a precise data extractor. Extract all {entity_type_plural} mentioned in the following web page content.
+EXTRACTION_PROMPT = """You are a precise data extractor. Extract all {entity_type_plural} from the web page below.
 
-For each {entity_type} found, extract these attributes:
+Attributes to extract for each {entity_type}:
 {attribute_list}
 
-IMPORTANT RULES:
-- Only extract entities that are clearly {entity_type_plural} related to the topic: "{query}"
-- For each attribute value, include the exact supporting quote from the text
-- If an attribute is not mentioned for an entity, set its value to null
-- Assign a confidence score (0.0 to 1.0) for each attribute based on how explicit the information is
-- Do NOT invent or hallucinate information not present in the text
+Rules:
+- Topic: "{query}" — only extract entities clearly related to this topic
+- At most 5 entities per response
+- Values must be concise (lists: max 3 items; text: max 15 words)
+- Set value to null if not found in the text
+- Do NOT invent information
 
-Respond with ONLY a JSON object in this format:
+You MUST respond with ONLY this exact JSON structure. Every attribute value must be an object with "value", "source_quote", and "confidence" — never a plain string.
+
+Example of correct format:
 {{
   "entities": [
     {{
       "attributes": {{
-        "attribute_name": {{
-          "value": "the extracted value or null",
-          "source_quote": "exact quote from text supporting this value, or null",
+        "name": {{
+          "value": "PostgreSQL",
+          "source_quote": "PostgreSQL is a powerful open source database",
+          "confidence": 0.98
+        }},
+        "license_type": {{
+          "value": "MIT",
+          "source_quote": "released under the MIT license",
           "confidence": 0.95
+        }},
+        "year_founded": {{
+          "value": null,
+          "source_quote": null,
+          "confidence": 0.0
         }}
       }}
     }}
@@ -73,7 +85,7 @@ async def extract_from_chunk(
         attribute_list=attribute_list,
         query=query,
         url=url,
-        content=chunk[:6000],  # Safety limit to avoid token overflow
+        content=chunk[:3000],  # Limit input to keep LLM calls fast
     )
 
     messages = [
@@ -85,7 +97,7 @@ async def extract_from_chunk(
     ]
 
     try:
-        result = await client.chat_json(messages, timeout=180.0)
+        result = await client.chat_json(messages, timeout=60.0)
     except Exception as e:
         logger.warning(f"Extraction failed for chunk from {url}: {e}")
         return []
@@ -129,8 +141,8 @@ async def extract_from_page(
     schema: dict,
 ) -> list[dict]:
     """
-    Extract entities from all chunks of a single page.
-    Processes chunks sequentially to avoid overwhelming the local LLM.
+    Extract entities from all chunks of a single page sequentially.
+    Chunks are kept sequential to avoid saturating the local LLM.
     """
     all_entities = []
     for i, chunk in enumerate(chunks):

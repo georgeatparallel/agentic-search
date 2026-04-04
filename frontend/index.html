@@ -133,6 +133,57 @@
       accent-color: var(--accent);
     }
 
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid var(--text-muted);
+      color: var(--text-muted);
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: default;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .info-icon .info-tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 260px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.6rem 0.75rem;
+      font-size: 0.78rem;
+      color: var(--text);
+      line-height: 1.5;
+      z-index: 100;
+      pointer-events: none;
+      white-space: normal;
+      text-align: left;
+    }
+
+    .info-icon .info-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--border);
+    }
+
+    .info-icon:hover .info-tooltip {
+      display: block;
+    }
+
     /* Status */
     .status-area {
       max-width: 700px;
@@ -412,6 +463,9 @@
         <input type="checkbox" id="agentToggle" checked>
         Enable agentic gap-filling
       </label>
+      <span class="info-icon">i
+        <span class="info-tooltip">After the initial extraction, the system checks which cells are still empty, generates targeted follow-up search queries to fill those gaps, then re-scrapes and merges the new results. Repeats up to 2 times. Slower but more complete.</span>
+      </span>
     </div>
 
     <div class="examples">
@@ -556,7 +610,9 @@
           if (val === null || val === undefined || val === '' || val === 'null') {
             bodyHTML += `<td><span class="cell-null">—</span></td>`;
           } else {
-            const displayVal = Array.isArray(val) ? val.join(', ') : String(val);
+            const displayVal = Array.isArray(val) ? val.join(', ')
+              : (typeof val === 'object' && val !== null) ? Object.values(val).join(', ')
+              : String(val);
             const hasSource = source?.source_quote;
             const confClass = conf >= 0.8 ? 'conf-high' : conf >= 0.5 ? 'conf-medium' : 'conf-low';
             const confDot = conf != null ? `<span class="confidence-dot ${confClass}" title="Confidence: ${(conf*100).toFixed(0)}%"></span>` : '';

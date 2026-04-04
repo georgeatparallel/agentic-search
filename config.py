@@ -10,7 +10,7 @@ load_dotenv()
 
 # --- Search ---
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY", "")
-SEARCH_NUM_RESULTS = int(os.getenv("SEARCH_NUM_RESULTS", "10"))
+SEARCH_NUM_RESULTS = int(os.getenv("SEARCH_NUM_RESULTS", "6"))
 SEARCH_PROVIDER = os.getenv("SEARCH_PROVIDER", "brave")  # "brave" or "duckduckgo"
 
 # --- Scraper ---
@@ -22,12 +22,12 @@ USER_AGENT = (
 )
 
 # --- Chunking ---
-CHUNK_MAX_TOKENS = int(os.getenv("CHUNK_MAX_TOKENS", "2000"))
+CHUNK_MAX_TOKENS = int(os.getenv("CHUNK_MAX_TOKENS", "2048"))
 CHUNK_OVERLAP_TOKENS = int(os.getenv("CHUNK_OVERLAP_TOKENS", "200"))
 
 # --- LLM ---
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")  # "ollama" or "openai"
-LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5:7b")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5:3b")
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")  # Only needed for cloud providers
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))

@@ -45,3 +45,8 @@ logs/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Project-specific
+CLAUDE.md
+progress.md
+challenge.md

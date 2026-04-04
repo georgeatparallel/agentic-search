@@ -88,7 +88,18 @@ def merge_entities(entities: list[dict], schema: dict) -> list[dict]:
     for entity in entities:
         entity_name = entity.get("name", "")
         if not entity_name:
-            # Skip entities without a name
+            # Fall back to any attribute with 'name' in the key (e.g. company_name, restaurant_name)
+            for key, val in entity.items():
+                if key.startswith("_"):
+                    continue
+                if "name" in key and val:
+                    entity_name = str(val)
+                    entity["name"] = entity_name  # normalize for downstream use
+                    # Mirror _attributes so source provenance is preserved under the "name" key
+                    if key in entity.get("_attributes", {}) and "name" not in entity["_attributes"]:
+                        entity["_attributes"]["name"] = entity["_attributes"][key]
+                    break
+        if not entity_name:
             continue
 
         # Check if this entity matches an existing merged entity
