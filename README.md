@@ -7,6 +7,8 @@ A system that takes a natural language topic query and produces a structured, so
 ![LLM](https://img.shields.io/badge/LLM-Qwen%202.5%203B-orange)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
+![Demo](demo.png)
+
 ---
 
 ## What It Does
