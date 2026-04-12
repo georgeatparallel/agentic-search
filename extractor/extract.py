@@ -6,6 +6,7 @@ following the dynamically generated schema.
 
 import asyncio
 import logging
+import config
 from llm.client import get_client
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ Attributes to extract for each {entity_type}:
 
 Rules:
 - Topic: "{query}" — only extract entities clearly related to this topic
-- At most 5 entities per response
+- At most 3 entities per response
 - Values must be concise (lists: max 3 items; text: max 15 words)
 - Set value to null if not found in the text
 - Do NOT invent information
@@ -97,7 +98,12 @@ async def extract_from_chunk(
     ]
 
     try:
-        result = await client.chat_json(messages, timeout=60.0)
+        result = await client.chat_json(
+            messages,
+            timeout=config.LLM_EXTRACT_TIMEOUT,
+            max_tokens=config.LLM_EXTRACT_MAX_TOKENS,
+            temperature=config.LLM_EXTRACT_TEMPERATURE,
+        )
     except Exception as e:
         logger.warning(f"Extraction failed for chunk from {url}: {e}")
         return []
@@ -139,15 +145,20 @@ async def extract_from_page(
     url: str,
     query: str,
     schema: dict,
+    sem: asyncio.Semaphore,
 ) -> list[dict]:
     """
-    Extract entities from all chunks of a single page sequentially.
-    Chunks are kept sequential to avoid saturating the local LLM.
+    Extract entities from all chunks of a single page concurrently,
+    gated by a shared semaphore to cap total in-flight LLM calls.
     """
+    async def _extract(i: int, chunk: str) -> list[dict]:
+        async with sem:
+            logger.debug(f"Processing chunk {i+1}/{len(chunks)} from {url}")
+            return await extract_from_chunk(chunk, url, query, schema)
+
+    results = await asyncio.gather(*[_extract(i, c) for i, c in enumerate(chunks)])
     all_entities = []
-    for i, chunk in enumerate(chunks):
-        logger.debug(f"Processing chunk {i+1}/{len(chunks)} from {url}")
-        entities = await extract_from_chunk(chunk, url, query, schema)
+    for entities in results:
         all_entities.extend(entities)
     return all_entities
 
@@ -156,21 +167,21 @@ async def extract_from_all_pages(
     pages: list[dict],
     query: str,
     schema: dict,
-    max_concurrent: int = 3,
 ) -> list[dict]:
     """
-    Extract entities from multiple pages.
+    Extract entities from multiple pages concurrently.
 
     pages: list of {"url": ..., "chunks": [...]}
     Returns flat list of all extracted entities across all pages.
+    A single semaphore (LLM_MAX_CONCURRENT) caps total in-flight LLM
+    calls across all pages and chunks combined.
     """
-    semaphore = asyncio.Semaphore(max_concurrent)
+    semaphore = asyncio.Semaphore(config.LLM_MAX_CONCURRENT)
 
     async def _extract_page(page: dict) -> list[dict]:
-        async with semaphore:
-            return await extract_from_page(
-                page["chunks"], page["url"], query, schema
-            )
+        return await extract_from_page(
+            page["chunks"], page["url"], query, schema, semaphore
+        )
 
     tasks = [_extract_page(page) for page in pages]
     results = await asyncio.gather(*tasks)

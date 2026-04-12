@@ -5,6 +5,7 @@ Provides a single interface for all LLM calls in the system.
 
 import json
 import logging
+import time
 import httpx
 
 import config
@@ -42,15 +43,17 @@ class LLMClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
 
-    def _build_payload(self, messages: list[dict], json_mode: bool = False) -> dict:
+    def _build_payload(self, messages: list[dict], json_mode: bool = False, max_tokens: int | None = None, temperature: float | None = None) -> dict:
+        max_tokens = max_tokens or self.max_tokens
+        temperature = temperature if temperature is not None else self.temperature
         if self.provider == "ollama":
             payload = {
                 "model": self.model,
                 "messages": messages,
                 "stream": False,
                 "options": {
-                    "temperature": self.temperature,
-                    "num_predict": self.max_tokens,
+                    "temperature": temperature,
+                    "num_predict": max_tokens,
                 },
             }
             if json_mode:
@@ -60,8 +63,8 @@ class LLMClient:
             payload = {
                 "model": self.model,
                 "messages": messages,
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
             }
             if json_mode:
                 payload["response_format"] = {"type": "json_object"}
@@ -81,19 +84,39 @@ class LLMClient:
         messages: list[dict],
         json_mode: bool = False,
         timeout: float = 120.0,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> str:
         """Send a chat completion request and return the response text."""
         url = self._build_url()
         headers = self._build_headers()
-        payload = self._build_payload(messages, json_mode)
+        payload = self._build_payload(messages, json_mode, max_tokens=max_tokens, temperature=temperature)
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
+                t0 = time.perf_counter()
                 resp = await client.post(url, json=payload, headers=headers)
+                elapsed = time.perf_counter() - t0
                 resp.raise_for_status()
                 data = resp.json()
                 content = self._extract_content(data)
-                logger.debug(f"LLM response length: {len(content)} chars")
+
+                # Log per-call timing. Ollama returns native token counts and
+                # eval_duration (nanoseconds); use those when available for accuracy.
+                if self.provider == "ollama" and "eval_count" in data:
+                    gen_tokens = data.get("eval_count", 0)
+                    prompt_tokens = data.get("prompt_eval_count", 0)
+                    eval_ns = data.get("eval_duration", 0)
+                    tok_per_sec = (gen_tokens / eval_ns * 1e9) if eval_ns else 0
+                    logger.info(
+                        f"LLM call: {elapsed:.1f}s wall | "
+                        f"{prompt_tokens} prompt tokens | "
+                        f"{gen_tokens} generated @ {tok_per_sec:.1f} tok/s"
+                    )
+                else:
+                    logger.info(
+                        f"LLM call: {elapsed:.1f}s | {len(content)} chars out"
+                    )
                 return content
             except httpx.HTTPStatusError as e:
                 logger.error(f"LLM API error {e.response.status_code}: {e.response.text[:500]}")
@@ -109,9 +132,11 @@ class LLMClient:
         self,
         messages: list[dict],
         timeout: float = 120.0,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
     ) -> dict:
         """Send a chat request expecting JSON output. Parses and returns dict."""
-        raw = await self.chat(messages, json_mode=True, timeout=timeout)
+        raw = await self.chat(messages, json_mode=True, timeout=timeout, max_tokens=max_tokens, temperature=temperature)
 
         # Strip markdown fences if present
         cleaned = raw.strip()

@@ -10,7 +10,7 @@ load_dotenv()
 
 # --- Search ---
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY", "")
-SEARCH_NUM_RESULTS = int(os.getenv("SEARCH_NUM_RESULTS", "6"))
+SEARCH_NUM_RESULTS = int(os.getenv("SEARCH_NUM_RESULTS", "4"))
 SEARCH_PROVIDER = os.getenv("SEARCH_PROVIDER", "brave")  # "brave" or "duckduckgo"
 
 # --- Scraper ---
@@ -32,6 +32,10 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")  # Only needed for cloud providers
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
+LLM_MAX_CONCURRENT = int(os.getenv("LLM_MAX_CONCURRENT", "1"))
+LLM_EXTRACT_TIMEOUT = float(os.getenv("LLM_EXTRACT_TIMEOUT", "90.0"))    # seconds per chunk
+LLM_EXTRACT_MAX_TOKENS = int(os.getenv("LLM_EXTRACT_MAX_TOKENS", "1200"))  # cap extraction output
+LLM_EXTRACT_TEMPERATURE = float(os.getenv("LLM_EXTRACT_TEMPERATURE", "0.0"))  # greedy for deterministic output length
 
 # --- Agent ---
 AGENT_MAX_ITERATIONS = int(os.getenv("AGENT_MAX_ITERATIONS", "2"))

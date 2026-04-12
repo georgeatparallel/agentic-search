@@ -112,6 +112,9 @@ async def search(req: SearchRequest, request: Request):
                 query=req.query,
                 enable_agent=req.enable_agent,
             )
+            timing = result.timing
+            breakdown = " | ".join(f"{k}: {v}s" for k, v in timing.items() if k != "total")
+            logger.info(f"Timing for '{req.query}' — {breakdown} | total: {timing.get('total')}s")
             return JSONResponse(content=result.to_dict())
         except Exception as e:
             logger.exception(f"Pipeline error: {e}")

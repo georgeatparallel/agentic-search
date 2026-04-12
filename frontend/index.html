@@ -607,20 +607,22 @@
           const source = entity._sources?.[col.name];
           const conf = source?.confidence;
 
-          if (val === null || val === undefined || val === '' || val === 'null') {
+          const NULL_STRINGS = new Set(['null', 'none', 'n/a', 'undefined', '']);
+          const isNull = val === null || val === undefined
+            || (typeof val === 'string' && NULL_STRINGS.has(val.toLowerCase().trim()));
+
+          if (isNull) {
             bodyHTML += `<td><span class="cell-null">—</span></td>`;
           } else {
-            const displayVal = Array.isArray(val) ? val.join(', ')
-              : (typeof val === 'object' && val !== null) ? Object.values(val).join(', ')
-              : String(val);
+            const displayVal = flattenVal(val);
             const hasSource = source?.source_quote;
             const confClass = conf >= 0.8 ? 'conf-high' : conf >= 0.5 ? 'conf-medium' : 'conf-low';
-            const confDot = conf != null ? `<span class="confidence-dot ${confClass}" title="Confidence: ${(conf*100).toFixed(0)}%"></span>` : '';
+            const confDot = conf != null ? `<span class="confidence-dot ${confClass}" data-conf="${(conf*100).toFixed(0)}" onmouseenter="showConfTooltip(event,this)" onmouseleave="hideTooltip()"></span>` : '';
 
             const sourceData = hasSource ? `data-quote="${escapeAttr(source.source_quote)}" data-url="${escapeAttr(source.source_url || '')}"` : '';
             const cellClass = hasSource ? 'cell-value has-source' : 'cell-value';
 
-            bodyHTML += `<td><span class="${cellClass}" ${sourceData} onmouseenter="showTooltip(event, this)" onmouseleave="hideTooltip()">${escapeHTML(truncate(displayVal, 120))}${confDot}</span></td>`;
+            bodyHTML += `<td><span class="${cellClass}" ${sourceData} onmouseenter="showTooltip(event, this)" onmouseleave="hideTooltip()">${escapeHTML(truncate(displayVal, 120))}</span>${confDot}</td>`;
           }
         }
 
@@ -661,6 +663,23 @@
 
     function hideTooltip() {
       document.getElementById('tooltip').classList.remove('visible');
+    }
+
+    function flattenVal(val) {
+      if (val === null || val === undefined) return '';
+      if (Array.isArray(val)) return val.map(flattenVal).filter(v => v !== '').join(', ');
+      if (typeof val === 'object') return Object.values(val).map(flattenVal).filter(v => v !== '').join(', ');
+      return String(val);
+    }
+
+    function showConfTooltip(event, el) {
+      const conf = el.getAttribute('data-conf');
+      const tooltip = document.getElementById('tooltip');
+      tooltip.innerHTML = `<strong>Confidence: ${conf}%</strong>`;
+      const rect = el.getBoundingClientRect();
+      tooltip.style.left = Math.min(rect.left, window.innerWidth - 420) + 'px';
+      tooltip.style.top = (rect.bottom + 8) + 'px';
+      tooltip.classList.add('visible');
     }
 
     function exportJSON() {

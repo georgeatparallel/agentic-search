@@ -54,7 +54,10 @@ BRAVE_API_KEY=
 
 # Optional overrides (defaults shown)
 # LLM_MODEL=qwen2.5:3b
-# SEARCH_NUM_RESULTS=6
+# LLM_MAX_CONCURRENT=1
+# LLM_EXTRACT_TIMEOUT=90.0
+# OLLAMA_NUM_PARALLEL=2
+# SEARCH_NUM_RESULTS=4
 # AGENT_MAX_ITERATIONS=2
 EOF
   warn ".env created. Add your BRAVE_API_KEY before searching."
@@ -62,6 +65,9 @@ EOF
 else
   info ".env already exists"
 fi
+
+# Source .env so variables like OLLAMA_NUM_PARALLEL are available to this script
+set -o allexport; source .env; set +o allexport 2>/dev/null || true
 
 # Check if BRAVE_API_KEY is set
 if [ -f .env ]; then
@@ -87,12 +93,14 @@ if ! command -v ollama &>/dev/null; then
     error "Unsupported OS. Install Ollama manually from https://ollama.com/download"
   fi
 fi
-info "Ollama $(ollama --version 2>/dev/null | awk '{print $2}' || echo 'installed')"
+info "Ollama $(ollama --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo 'installed')"
+
+OLLAMA_PARALLEL="${OLLAMA_NUM_PARALLEL:-1}"
 
 # Start ollama serve if not already running
 if ! curl -s http://localhost:11434/api/tags &>/dev/null; then
   warn "Starting Ollama server..."
-  ollama serve &>/dev/null &
+  OLLAMA_NUM_PARALLEL=$OLLAMA_PARALLEL ollama serve &>/dev/null &
   OLLAMA_PID=$!
   # Wait for it to become ready
   for i in {1..15}; do
@@ -100,9 +108,9 @@ if ! curl -s http://localhost:11434/api/tags &>/dev/null; then
     if curl -s http://localhost:11434/api/tags &>/dev/null; then break; fi
     if [ "$i" -eq 15 ]; then error "Ollama failed to start. Run 'ollama serve' manually."; fi
   done
-  info "Ollama server started (PID $OLLAMA_PID)"
+  info "Ollama server started (PID $OLLAMA_PID, parallel slots: $OLLAMA_PARALLEL)"
 else
-  info "Ollama server already running"
+  warn "Ollama server already running — OLLAMA_NUM_PARALLEL=$OLLAMA_PARALLEL will not apply until you restart it ('ollama stop' then rerun setup.sh)"
 fi
 
 # Pull model if not already downloaded
