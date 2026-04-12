@@ -76,7 +76,7 @@ Open **http://localhost:8000**.
 | `LLM_MODEL` | `qwen2.5:3b` | Ollama model to use |
 | `LLM_BASE_URL` | `http://localhost:11434` | Ollama endpoint |
 | `LLM_MAX_TOKENS` | `4096` | Max tokens per LLM response |
-| `SEARCH_NUM_RESULTS` | `6` | Pages to fetch per query |
+| `SEARCH_NUM_RESULTS` | `4` | Pages to fetch per query |
 | `AGENT_MAX_ITERATIONS` | `2` | Max agentic gap-fill iterations |
 | `AGENT_GAP_THRESHOLD` | `0.5` | Gap ratio that triggers a follow-up search |
 | `RATE_LIMIT_REQUESTS` | `5` | Max requests per window per IP |
