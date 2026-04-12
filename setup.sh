@@ -4,6 +4,9 @@
 
 set -e
 
+# Always run from the project root (script's directory)
+cd "$(dirname "$0")"
+
 BOLD="\033[1m"
 GREEN="\033[0;32m"
 YELLOW="\033[0;33m"
