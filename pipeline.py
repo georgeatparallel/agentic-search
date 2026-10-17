@@ -7,7 +7,8 @@ import logging
 import time
 from dataclasses import dataclass, field
 
-from search.brave import search as brave_search
+import config
+from search import get_search_fn
 from scraper.fetcher import fetch_all
 from scraper.cleaner import clean_html
 from scraper.chunker import chunk_text
@@ -124,7 +125,7 @@ async def run_pipeline(
     status("Searching the web...")
     t0 = time.time()
     try:
-        search_results = await brave_search(query)
+        search_results = await get_search_fn()(query, num_results=config.SEARCH_NUM_RESULTS)
         result.sources = search_results
     except Exception as e:
         result.errors.append(f"Search failed: {e}")

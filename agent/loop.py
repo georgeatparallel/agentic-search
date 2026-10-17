@@ -10,7 +10,7 @@ import asyncio
 import logging
 
 import config
-from search.brave import search as brave_search
+from search import get_search_fn
 from scraper.fetcher import fetch_all
 from scraper.cleaner import clean_html
 from scraper.chunker import chunk_text
@@ -77,7 +77,8 @@ async def run_agentic_loop(
             break
 
         # Search for all follow-up queries in parallel
-        search_tasks = [brave_search(fq, num_results=5) for fq in follow_up_queries]
+        search_fn = get_search_fn()
+        search_tasks = [search_fn(fq, num_results=5) for fq in follow_up_queries]
         search_results_list = await asyncio.gather(*search_tasks)
         new_search_results = [r for results in search_results_list for r in results]
 

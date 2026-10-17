@@ -73,6 +73,7 @@ Open **http://localhost:8000**.
 | Variable | Default | Description |
 |---|---|---|
 | `BRAVE_API_KEY` | `""` | Brave Search API key (optional, DDG fallback if empty) |
+| `SEARCH_PROVIDER` | `brave` | Search backend: `brave`, `duckduckgo`, or `parallel` |
 | `LLM_MODEL` | `qwen2.5:3b` | Ollama model to use |
 | `LLM_BASE_URL` | `http://localhost:11434` | Ollama endpoint |
 | `LLM_MAX_TOKENS` | `4096` | Max tokens per LLM response |
@@ -82,6 +83,22 @@ Open **http://localhost:8000**.
 | `RATE_LIMIT_REQUESTS` | `5` | Max requests per window per IP |
 | `RATE_LIMIT_WINDOW` | `60` | Rate limit window in seconds |
 | `PORT` | `8000` | Server port |
+
+### Parallel search (optional)
+
+Set `SEARCH_PROVIDER=parallel` in `.env` to use
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+for both the initial search and agentic follow-up searches. The anonymous endpoint
+provides free web search in Fast mode without an account or API key, with limits
+suited to exploration and light use. Install dependencies with
+`poetry install --no-root`, then restart the server with `poetry run python main.py`.
+
+The provider connects to `https://search.parallel.ai/mcp` over Streamable HTTP
+and maps search excerpts to the existing title, URL and snippet format. Pages
+still go through the existing scraper and extraction pipeline. Each search has
+a 30-second deadline; service errors propagate to the pipeline instead of
+silently switching providers. Leave `SEARCH_PROVIDER` unset to keep Brave and
+its automatic DuckDuckGo fallback.
 
 ---
 

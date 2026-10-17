@@ -11,7 +11,7 @@ load_dotenv()
 # --- Search ---
 BRAVE_API_KEY = os.getenv("BRAVE_API_KEY", "")
 SEARCH_NUM_RESULTS = int(os.getenv("SEARCH_NUM_RESULTS", "4"))
-SEARCH_PROVIDER = os.getenv("SEARCH_PROVIDER", "brave")  # "brave" or "duckduckgo"
+SEARCH_PROVIDER = os.getenv("SEARCH_PROVIDER", "brave")  # "brave", "duckduckgo", or "parallel"
 
 # --- Scraper ---
 SCRAPE_TIMEOUT = int(os.getenv("SCRAPE_TIMEOUT", "15"))  # seconds per page
